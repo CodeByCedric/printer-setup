@@ -1,7 +1,12 @@
 [CmdletBinding()]
 param (
+    [ValidateNotNullOrEmpty()]
     [string]$displayMacAddress,
+
+    [ValidateNotNullOrEmpty()]
     [string]$printerNameUpstairs,
+    
+    [ValidateNotNullOrEmpty()]
     [string]$printerNameDownstairs
 )
 
@@ -48,8 +53,8 @@ foreach ($adapter in $networkAdapters) {
 
 if ($macAddressFound) {
     Set-Content -Path $printerConfigDirectoryPath\printerConfig.txt -Value $printerNameDownstairs
-    Write-Verbose "Printer set to $printerNameDownstairs"
+    Write-Verbose "Printer set to '$printerNameDownstairs'"
 } else {
     Set-Content -Path $printerConfigDirectoryPath\printerConfig.txt -Value $printerNameDownstairs
-    Write-Verbose "Printer set to $printerNameUpstairs"
+    Write-Verbose "Printer set to '$printerNameUpstairs'"
 }
