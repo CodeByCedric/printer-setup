@@ -1,3 +1,6 @@
+# TODO: checking for valid printers on the local machine is not valid... REFACTOR
+# TODO: printer selection is not necessary here, only location of laptop
+
 [CmdletBinding()]
 param (
     [string]$displayMacAddress,
@@ -12,8 +15,6 @@ $printerSyncFileName = "printerSyncConfig.txt"
 $networkAdapters = Get-NetAdapter
 $macAddressFound = $false
 $regexMacAddressPattern = '^[0-9A-Fa-f]{2}([-:])[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}$'
-$validPrinters = Get-Printer | Select-Object -ExpandProperty Name
-$stringOfValidPrinterNames = (Get-Printer | Select-Object -ExpandProperty Name| ForEach-Object {"`"$($_)`""}) -join ', '
 $validMacAddresses = (Get-NetAdapter | Select-Object -Property Name, MacAddress | ForEach-Object {"$($_.Name): $($_.MacAddress)"}) -join "`n"
 
 function Validate-MacAddress {
@@ -21,13 +22,6 @@ function Validate-MacAddress {
         [string]$macAddress
     )
     return $macAddress -match $regexMacAddressPattern
-}
-
-function Validate-PrinterName {
-    param (
-        [string]$printerName
-    )
-    return $validPrinters -contains $printerName
 }
 
 Write-Verbose "Starting script with parameters:"
@@ -40,22 +34,6 @@ if (-not (Validate-MacAddress -macAddress $displayMacAddress)) {
 }
 
 Write-Verbose "Display MAC-Address: $displayMacAddress"
-
-if (-not (Validate-PrinterName -printerName $printerNameUpstairs)) {
-    do {
-        $printerNameUpstairs = Read-Host "Please enter a valid upstairs printer name ($($stringOfValidPrinterNames))"
-    } while (-not (Validate-PrinterName -printerName $printerNameUpstairs))
-}
-
-Write-Verbose "Printer name upstairs: $printerNameUpstairs"
-
-if (-not (Validate-PrinterName -printerName $printerNameDownstairs)) {
-    do {
-        $printerNameDownstairs = Read-Host "Please enter a valid downstairs printer name ($($stringOfValidPrinterNames))"
-    } while (-not (Validate-PrinterName -printerName $printerNameDownstairs))
-}
-
-Write-Verbose "Printer name downstairs: $printerNameDownstairs"
 
 
 # Script execution
