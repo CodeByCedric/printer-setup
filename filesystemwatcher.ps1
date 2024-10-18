@@ -1,14 +1,54 @@
+[CmdletBinding()]
+param (
+    [string]$printerNameUpstairs,
+    [string]$printerNameDownstairs
+)
+
 $currentUser = (whoami).Split('\\')[1]
 $printerSyncFilePath = "C:\Users\$currentUser\OneDrive - Office 365 GPI\printer\printerSyncConfig.txt"
 $printer = ''
+$validPrinters = Get-Printer | Select-Object -ExpandProperty Name
+$stringOfValidPrinterNames = (Get-Printer | Select-Object -ExpandProperty Name| ForEach-Object {"`"$($_)`""}) -join ', '
+
+# 1. Validate filepath
+# 2. Retrieve printer name from file
+# 3. Verify if printer name from file equals installed printers
+# 4. 
+
+
+# Optional: modify syncfile to contain existing VM printers
+
+function Validate-PrinterName {
+    param (
+        [string]$printerName
+    )
+    return $validPrinters -contains $printerName
+}
+
+if (-not (Validate-PrinterName -printerName $printerNameUpstairs)) {
+    do {
+        $printerNameUpstairs = Read-Host "Please enter a valid upstairs printer name ($($stringOfValidPrinterNames))"
+    } while (-not (Validate-PrinterName -printerName $printerNameUpstairs))
+}
+
+Write-Verbose "Printer name upstairs: $printerNameUpstairs"
+
+if (-not (Validate-PrinterName -printerName $printerNameDownstairs)) {
+    do {
+        $printerNameDownstairs = Read-Host "Please enter a valid downstairs printer name ($($stringOfValidPrinterNames))"
+    } while (-not (Validate-PrinterName -printerName $printerNameDownstairs))
+}
+
+Write-Verbose "Printer name downstairs: $printerNameDownstairs"
+
 
 # Check if printerSyncFilePath.txt exists and set printer variable
 try {
     if (Test-Path $printerSyncFilePath) {
-        Write-Output "printerSyncFilePath.txt file path OK"
+        Write-Verbose "printerSyncFilePath.txt file path OK"
         $printer = Get-Content $printerSyncFilePath
     } else {
-        Write-Host "Error: the printerSyncFilePath.txt file does not exist ($printerSyncFilePath)"
+        Write-Verbose "Error: the printerSyncFilePath.txt file does not exist ($printerSyncFilePath)"
         return
     }
 } catch {
@@ -20,25 +60,24 @@ try {
 try {
     if (-not [string]::IsNullOrEmpty($printer)) {
         $printer = Get-Content $printerSyncFilePath
-        Write-Host "Printer name retrieved: $printer"
+        Write-Verbose "Printer name retrieved: $printer"
     } else {
-        Write-Host "printerSyncFilePath.txt isNullOrEmpty: $_"
+        Write-Verbose "printerSyncFilePath.txt isNullOrEmpty: $_"
     }} catch {
-        Write-Host "Error retrieving printerSyncFilePath.txt content: $_"
+        Write-Verbose "Error retrieving printerSyncFilePath.txt content: $_"
         return
     }
 
 # Check if printer exists
-if ((Get-CimInstance -Class Win32_Printer -Filter "Name='$printer'") -and ($printer -eq 'Fax' -or $printer -eq 'OneNote')) {
-   
-    Write-Host "Printer $printer exists"
+if ((Get-CimInstance -Class Win32_Printer -Filter "Name='$printer'") -and ($printer -eq $printerNameUpstairs -or $printer -eq $printerNameDownstairs)) {
+    Write-Verbose "Printer $printer exists"
 } else {
-    Write-Host "Incorrect Printer Provided: $printer'"
+    Write-Verbose "Incorrect Printer Provided: $printer'"
 }
 
 
 # Start FileSystemWatcher
-Write-Host "Starting FileSystemWatcher:"
+Write-Verbose "Starting FileSystemWatcher:"
 
 # Try to create the FileSystemWatcher
 try {
@@ -46,35 +85,34 @@ try {
     $watcher.Path = Split-Path $printerSyncFilePath
     $watcher.Filter = "printerSyncFilePath.txt"
     $watcher.EnableRaisingEvents = $true
-    Write-Host "FileSystemWatcher created successfully."
+    Write-Verbose "FileSystemWatcher created successfully."
 } catch {
-    Write-Host "Error creating FileSystemWatcher: $_"
+    Write-Verbose "Error creating FileSystemWatcher: $_"
     return
 }
 
 # Define the action to take when the file changes
 $action = {
-    Write-Host "File change detected! Preparing to check content..."
+    Write-Verbose "File change detected! Preparing to check content..."
     Start-Sleep -Seconds 1
     try {
-        # Using Get-Content in a safe way with a check for null or empty
         if (-not [string]::IsNullOrEmpty($printerSyncFilePath) -and (Test-Path $printerSyncFilePath)) {
             $newContent = Get-Content $printerSyncFilePath
-            Write-Host "New file content: $newContent"
+            Write-Verbose "New file content: $newContent"
             if ($newContent -eq "OneNote") {
-                Write-Host "Setting OneNote printer as default."
+                Write-Verbose "Setting OneNote printer as default."
                 (New-Object -ComObject WScript.Network).SetDefaultPrinter($newContent)
             } elseif ($newContent -eq "Fax") {
-                Write-Host "Setting Fax printer as default."
+                Write-Verbose "Setting Fax printer as default."
                 (New-Object -ComObject WScript.Network).SetDefaultPrinter($newContent)
             } else {
-                Write-Host "Error: Unrecognized printer name in file content."
+                Write-Verbose "Error: Unrecognized printer name in file content."
             }
         } else {
-            Write-Host "Error: File path is null or does not exist."
+            Write-Verbose "Error: File path is null or does not exist."
         }
     } catch {
-        Write-Host "Error reading file content or setting printer: $_"
+        Write-Verbose "Error reading file content or setting printer: $_"
     }
 }
 
@@ -82,23 +120,23 @@ $action = {
 # Register the event for the Changed event
 try {
     $job = Register-ObjectEvent $watcher Changed -Action $action
-    Write-Host "Event registered successfully. Job ID: $($job.Id)"
+    Write-Verbose "Event registered successfully. Job ID: $($job.Id)"
 } catch {
-    Write-Host "Error with event registration: $_"
+    Write-Verbose "Error with event registration: $_"
     return
 }
 
 # Check the job status periodically
 while ($true) {
     $jobStatus = Get-Job -Id $job.Id
-    Write-Host "Monitoring file changes... (Job Status: $($jobStatus.State))"
+    Write-Verbose "Monitoring file changes... (Job Status: $($jobStatus.State))"
     
     if ($jobStatus.State -eq 'Running') {
-        Write-Host "Event job is running."
+        Write-Verbose "Event job is running."
     } elseif ($jobStatus.State -eq 'NotStarted') {
-        Write-Host "Event job is not started yet."
+        Write-Verbose "Event job is not started yet."
     } elseif ($jobStatus.State -eq 'Completed' -or $jobStatus.State -eq 'Failed') {
-        Write-Host "Event job has stopped or failed. Exiting..."
+        Write-Verbose "Event job has stopped or failed. Exiting..."
         break
     }
 
