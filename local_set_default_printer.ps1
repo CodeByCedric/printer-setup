@@ -4,7 +4,7 @@ param (
     [string]$printerNameDownstairs
 )
 
-if (-not $DisplayMacAddres) {
+if (-not $displayMacAddress) {
     Write-Host "Please provide a MAC address as an argument."
     exit
 }
@@ -20,13 +20,14 @@ if (-not $printerNameDownstairs) {
 }
 
 $currentUser = (whoami).Split('\\')[1]
-$printerConfig = "C:\Users\"+$currentUser+"\OneDrive - Office 365 GPI\printer\printerConfig.txt"
+$printerConfigDirectoryPath = "C:\Users\"+$currentUser+"\OneDrive - Office 365 GPI\printer\"
 $networkAdapters = Get-NetAdapter
 $macAddressFound = $false
 
-if (-not (Test-Path $printerConfig)) {
-    Write-Host "The file $printerConfig does not exist."
-    exit
+if (-not (Test-Path $printerConfigDirectoryPath)) {
+    New-Item -Path $printerConfigDirectoryPath -ItemType Directory
+    $printerConfigDirectory = Get-Item $printerConfigDirectoryPath
+    $printerConfigDirectory.Attributes = $printerConfigDirectory.Attributes -bor 'Hidden'
 }
 
 foreach ($adapter in $networkAdapters) {
@@ -37,7 +38,7 @@ foreach ($adapter in $networkAdapters) {
 }
 
 if ($macAddressFound) {
-    Set-Content $printerConfig $printerNameUpstairs
+    Set-Content -Path $printerConfigDirectoryPath\printerConfig.txt -Value $printerNameDownstairs
 } else {
-    Set-Content $printerConfig $printerNameDownstairs
+    Set-Content -Path $printerConfigDirectoryPath\printerConfig.txt -Value $printerNameDownstairs
 }
