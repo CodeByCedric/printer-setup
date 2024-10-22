@@ -1,19 +1,37 @@
+# TODO's 
+
+Doen de events zich bij iedereen en altijd voor? 
+- Local: 105
+- VM: 4107
+
+Task Scheduler - vm_set_default_printer.ps1:
+- General: Bij task scheduler (general) store password or not? denk van niet, want delay, zou dus niet nodig moeten zijn.
+- Actions: is het argument -Windowstyle hidden nodig?
+- Conditions Start the task only if the computer is on AC Power: aanvinken? in principe wel, want docking station voorziet stroom.
+
+Task Scheduler - filesystemwatcher.ps1 
+- De taak alleen starten als de computer op netstroom werkt?
+- Stoppen als de computer op batterij gaat werken?
+
 # Vereisten
 
 Display met docking/ethernet voor een MAC-address.
 OneDrive geïnstalleerd op een 'normale' wijze, dus geen afwijkend pad.
-Folder 'printer' in OneDrive met tekstbestand 'printerConfig.txt'
-(Tip: plaats de folder op hidden voor de gebruiker) 
 
 # Split PS Scripts via OneDrive
-
 ## MAC Address Display
 
 Noteer het MAC-Address van het scherm. Deze is terug te vinden via de settings van het scherm onder de rubriek 'Information'. 
 
 ## Instellingen op het lokale toestel
-
 ### Event Viewer/Logboeken
+Open Event Viewer als administrator
+Open Windows Logs - System
+Koppel het scherm los
+Optioneel: wis de system logs (hiervoor moet je de applicatie als administrator hebben opgestart)
+Koppel het scherm aan
+Registreer het gepaste Event ID (bv. Event-ID: 105 Source: Kernel-Power)
+
 
 ### Task Scheduler/Taakplanner: Docking Event
 
@@ -23,8 +41,6 @@ In het rechtervak 'actions' een nieuwe taak creëren 'create task'
 - Naam: "Docking Event"
 - Description: "Run local_set_default_printer.ps1 in OneDrive printer folder to verify if mac-address of external display equals provided mac-address and update printerConfig.txt in same folder."
 - Run whether using is logged on or not: aanvinken, op deze manier ziet de gebruiker geen powershell venster
-
-**TODO**: store password or not? denk van niet, want delay, zou dus niet nodig moeten zijn.
 
 #### Triggers
 New
@@ -41,19 +57,14 @@ New
 Action: Start a program
 Program/script: powershell.exe
 Add arguments (optional): 
-    -macAddressToCheck "[XX-XX-XX-XX-XX-XX]"
-    -File "C:\Users\[USERNAME]\OneDrive - Office 365 GPI\printer\local_set_default_printer.ps1"
+    -displayMacAddress "[XX-XX-XX-XX-XX-XX]"
     -WindowStyle hidden
 
 Waarbij wordt vervangen:
 - het MAC-Address door het eerder genoteerde address van het scherm
 - de username door de username van de eindgebruiker
 
-**TODO**: is het argument -Windowstyle hidden nodig?
-
 #### Conditions
-Start the task only if the computer is on AC Power
-**TODO:** aanvinken? in principe wel, want docking station voorziet stroom.
 
 #### Settings
 Aanvinken:
@@ -63,9 +74,19 @@ Aanvinken:
 - If the running task does not end when requested, force it to stop.
 
 ## Instellingen op de VM
+### Script
+Het script vereist de parameters:
+- -$printerNameUpstairs
+- -$printerNameDownstairs
 ### Event Viewer/Logboeken
-
+Event opzoeken 
 ### Task Scheduler/Taakplanner: Set Default Printer; OF via FileSystemWatcher
+Open Event Viewer als administrator
+Open Windows Logs - System
+Koppel het scherm los
+Optioneel: wis de system logs (hiervoor moet je de applicatie als administrator hebben opgestart)
+Koppel het scherm aan
+Registreer het gepaste Event ID (bv. Event-ID: 4107 Source: Display)
 
 #### Task Scheduler/Taakplanner
 #### FileSystemWatcher
@@ -82,7 +103,6 @@ Programma/script: powershell.exe
 Parameters toevegen (optioneel): 
     -File "C:\Users\[USERNAME]\OneDrive - Office 365 GPI\printer\filesystemwatcher.ps1"
 
-**TODO**: onderstaande? 
 Voorwaarden:
 - De taak alleen starten als de computer op netstroom werkt
 - Stoppen als de computer op batterij gaat werken
