@@ -8,10 +8,10 @@ try {
     Write-Host "Error: $_"
 }
 
-if (-not [string]::IsNullOrEmpty($printerConfig) -and (Test-Path $printerConfig)) {
-    if ($printerConfig -eq "OneNote") {
+if (-not [string]::IsNullOrEmpty($printerSyncFilePath) -and (Test-Path $printerSyncFilePath)) {
+    if ($printerSyncFilePath -eq "OneNote") {
         (New-Object -ComObject WScript.Network).SetDefaultPrinter($printer)
-    } elseif ($printerConfig -eq "Fax") {
+    } elseif ($printerSyncFilePath -eq "Fax") {
         (New-Object -ComObject WScript.Network).SetDefaultPrinter($printer)
     } else {
         Write-Debug "Incorrect printer"
