@@ -1,23 +1,20 @@
-# TODO: checking for valid printers on the local machine is not valid... REFACTOR
-# TODO: printer selection is not necessary here, only location of laptop
-
 [CmdletBinding()]
 param (
-    [string]$displayMacAddress,
-    [string]$printerNameUpstairs,
-    [string]$printerNameDownstairs
+    [string]$displayMacAddress
 )
 
 # Variables
 $currentUser = (whoami).Split('\\')[1]
 $printerSyncDirectory = "C:\Users\$currentUser\OneDrive - Office 365 GPI\printer\"
 $printerSyncFileName = "printerSyncConfig.txt"
+$printerLocationDownstairs = "onthaal"
+$printerLocationUpstairs = "bureau"
 $networkAdapters = Get-NetAdapter
 $macAddressFound = $false
 $regexMacAddressPattern = '^[0-9A-Fa-f]{2}([-:])[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}\1[0-9A-Fa-f]{2}$'
 $validMacAddresses = (Get-NetAdapter | Select-Object -Property Name, MacAddress | ForEach-Object {"$($_.Name): $($_.MacAddress)"}) -join "`n"
 
-function Validate-MacAddress {
+function Test-MacAddress {
     param (
         [string]$macAddress
     )
@@ -27,10 +24,10 @@ function Validate-MacAddress {
 Write-Verbose "Starting script with parameters:"
 
 # Paramater validation
-if (-not (Validate-MacAddress -macAddress $displayMacAddress)) {
+if (-not (Test-MacAddress -macAddress $displayMacAddress)) {
     do {
         $displayMacAddress = Read-Host "$($validMacAddresses)`nPlease provide a valid MAC-Address from the list above"
-    } while (-not (Validate-MacAddress -macAddress $displayMacAddress))
+    } while (-not (Test-MacAddress -macAddress $displayMacAddress))
 }
 
 Write-Verbose "Display MAC-Address: $displayMacAddress"
@@ -47,7 +44,7 @@ try {
         Write-Verbose "Printer Config Directory found at $printerSyncDirectory"
     }
 } catch {
-    Write-Host "Error creating the printer config directory: $_"
+    Write-Verbose "Error creating the printer config directory: $_"
     exit
 }
 
@@ -57,11 +54,12 @@ foreach ($adapter in $networkAdapters) {
         break
     }
 }
+    Write-Verbose "MAC-Address found: $macAddressFound"
 
 if ($macAddressFound) {
-    Set-Content -Path $printerSyncDirectory\$printerSyncFileName -Value $printerNameDownstairs
-    Write-Verbose "Printer sync file content set to '$printerNameDownstairs'"
+    Set-Content -Path $printerSyncDirectory\$printerSyncFileName -Value $printerLocationDownstairs
+    Write-Verbose "Printer sync file content set to '$printerLocationDownstairs'"
 } else {
-    Set-Content -Path $printerSyncDirectory\$printerSyncFileName -Value $printerNameUpstairs
-    Write-Verbose "Printer sync file content set to '$printerNameUpstairs'"
+    Set-Content -Path $printerSyncDirectory\$printerSyncFileName -Value $printerLocationUpstairs
+    Write-Verbose "Printer sync file content set to '$printerLocationUpstairs'"
 }
