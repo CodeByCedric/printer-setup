@@ -48,7 +48,7 @@ Begin the task: "On an event"
 Settings: Basic
     Log: System
     Source: Kernel-Power
-    Event ID: opgezocht ID via Event Viewer
+    Event ID: opgezocht ID via Event Viewer (bv. 105)
 
 Delay Task for: 30 seconden
 
@@ -80,7 +80,15 @@ Het script vereist de parameters:
 - -$printerNameDownstairs
 ### Event Viewer/Logboeken
 Event opzoeken 
+
+
+
+
+
 ### Task Scheduler/Taakplanner: Set Default Printer; OF via FileSystemWatcher
+
+TODO: enkel filesystemwatcher want events triggeren niet consistent
+
 Open Event Viewer als administrator
 Open Windows Logs - System
 Koppel het scherm los
@@ -89,6 +97,28 @@ Koppel het scherm aan
 Registreer het gepaste Event ID (bv. Event-ID: 4107 Source: Display)
 
 #### Task Scheduler/Taakplanner
+##### General
+Naam: Printer - Set Default
+Beschrijving: Set default printer based on printer name in printerSysConfig.txt file on OneDrive.
+When running the task, use the following user account:
+- From this location: Entire Directory
+- Enter the object name to select: adm account
+
+##### Triggers
+
+TODO: enkel filesystemwatcher
+
+2 triggers? Logon & event
+
+New
+Begin the task: "On an event"
+Settings: Basic
+    Log: System
+    Source: Display
+    Event ID: opgezocht ID via Event Viewer (bv. 4107)
+
+Delay Task for: 1 mminute
+
 #### FileSystemWatcher
 Algemeen:
 (Voor volledige uitleg, zie uitlegger task scheduler op de lokale machine)
