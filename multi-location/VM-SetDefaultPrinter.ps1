@@ -6,7 +6,7 @@ $printerSyncFilePath = $printerSyncDirectory + $printerSyncFileName
 
 $validPrinters = Get-Printer | Select-Object -ExpandProperty Name
 
-# 1. Validate filepath
+# Validate filepath
 if (Test-Path $printerSyncFilePath)  {
     Write-Verbose "printerSyncFilePath.txt file path OK"
 } else {
@@ -14,10 +14,10 @@ if (Test-Path $printerSyncFilePath)  {
     return
 }
 
-# 2. Get printername
+# Get printername
 $defaultPrinter = Get-Content $printerSyncFilePath
 
-# 3. Validate printer
+# Validate printer
 if ($validPrinters -contains $defaultPrinter) {
     Write-Verbose "Provided default printer is installed"
 } else {
@@ -26,7 +26,7 @@ if ($validPrinters -contains $defaultPrinter) {
     return
 }
 
-# 4. Set default printer
+# Set default printer
 try {
     (New-Object -ComObject WScript.Network).SetDefaultPrinter($defaultPrinter)
 }
