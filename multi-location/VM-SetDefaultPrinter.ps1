@@ -1,3 +1,5 @@
+# TODO Event 4107 does not always trigger, refactor to filesystemwatcher
+
 $currentUser = (whoami).Split('\\')[1]
 
 $printerSyncDirectory = "C:\Users\$currentUser\OneDrive - Office 365 GPI\printer\"
