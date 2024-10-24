@@ -18,25 +18,25 @@ $stringOfValidPrinterNames = (Get-Printer | Select-Object -ExpandProperty Name| 
 
 # Optional: modify syncfile to contain existing VM printers
 
-function Validate-PrinterName {
+function isPrinterValid {
     param (
         [string]$printerName
     )
     return $validPrinters -contains $printerName
 }
 
-if (-not (Validate-PrinterName -printerName $printerNameUpstairs)) {
+if (-not (isPrinterValid -printerName $printerNameUpstairs)) {
     do {
         $printerNameUpstairs = Read-Host "Please enter a valid upstairs printer name ($($stringOfValidPrinterNames))"
-    } while (-not (Validate-PrinterName -printerName $printerNameUpstairs))
+    } while (-not (isPrinterValid -printerName $printerNameUpstairs))
 }
 
 Write-Verbose "Printer name upstairs: $printerNameUpstairs"
 
-if (-not (Validate-PrinterName -printerName $printerNameDownstairs)) {
+if (-not (isPrinterValid -printerName $printerNameDownstairs)) {
     do {
         $printerNameDownstairs = Read-Host "Please enter a valid downstairs printer name ($($stringOfValidPrinterNames))"
-    } while (-not (Validate-PrinterName -printerName $printerNameDownstairs))
+    } while (-not (isPrinterValid -printerName $printerNameDownstairs))
 }
 
 Write-Verbose "Printer name downstairs: $printerNameDownstairs"
