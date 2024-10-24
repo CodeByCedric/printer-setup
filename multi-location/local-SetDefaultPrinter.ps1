@@ -1,9 +1,14 @@
+#TODO hoe printer terug naar de policy default plaatsen als mac-address niet gevonden is? 
+
+[CmdletBinding()]
+param ()
+
 # Variables
 $currentUser = (whoami).Split('\\')[1]
 $networkAdapters = Get-NetAdapter
 
 # Set script location in scriptDirectory variable (and scriptName if you have changed it)
-$scriptName = "setDefaultPrinter.ps1"
+$scriptName = "local-SetDefaultPrinter.ps1"
 $scriptDirectory = "c:\psscripts\"
 $scriptFilePath = $scriptDirectory + $scriptName
 
@@ -21,12 +26,18 @@ $printerToMacAddressTable = @{
 # Test directories and filepaths
 try {
     if (-not (Test-Path $scriptFilePath)) {
-        Write-Verbose "Error with $scriptFilePath"
+        Write-Verbose "Error with the script file path or script name: $scriptFilePath`n Does the folder exist and are the variable names correct?"
         return
     }
+    else {
+        Write-Verbose "Script file path OK"
+    }
+
     if (-not (Test-Path $printerSyncDirectory)) {
         [void](New-Item -Path $printerSyncDirectory -ItemType Directory -ErrorAction Stop)
         $printerSyncDirectory.Attributes = $printerSyncDirectory.Attributes -bor 'Hidden'
+    } else {
+        Write-Verbose "PrinterSyncDirectory OK"
     }
 } catch {
     Write-Verbose "Error in creating directory or setting its attributes: $_"
