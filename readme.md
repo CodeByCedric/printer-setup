@@ -1,22 +1,9 @@
-# TODO's 
-
-Doen de events zich bij iedereen en altijd voor? 
-- Local: 105
-- VM: 4107
-
-Task Scheduler - vm_set_default_printer.ps1:
-- General: Bij task scheduler (general) store password or not? denk van niet, want delay, zou dus niet nodig moeten zijn.
-- Actions: is het argument -Windowstyle hidden nodig?
-- Conditions Start the task only if the computer is on AC Power: aanvinken? in principe wel, want docking station voorziet stroom.
-
-Task Scheduler - filesystemwatcher.ps1 
-- De taak alleen starten als de computer op netstroom werkt?
-- Stoppen als de computer op batterij gaat werken?
-
 # Vereisten
 
 Display met docking/ethernet voor een MAC-address.
 OneDrive geïnstalleerd op een 'normale' wijze, dus geen afwijkend pad.
+
+Tip: om te troubleshooten, laat het script eens lopen met de parameter -Verbose
 
 # Split PS Scripts via OneDrive
 ## MAC Address Display
@@ -56,13 +43,9 @@ Delay Task for: 30 seconden
 New
 Action: Start a program
 Program/script: powershell.exe
-Add arguments (optional): 
-    -displayMacAddress "[XX-XX-XX-XX-XX-XX]"
+Add arguments (optional):
+    -File "LOCATIE PSSCRIPT"
     -WindowStyle hidden
-
-Waarbij wordt vervangen:
-- het MAC-Address door het eerder genoteerde address van het scherm
-- de username door de username van de eindgebruiker
 
 #### Conditions
 
@@ -74,86 +57,104 @@ Aanvinken:
 - If the running task does not end when requested, force it to stop.
 
 ## Instellingen op de VM
-### Script
-Het script vereist de parameters:
-- -$printerNameUpstairs
-- -$printerNameDownstairs
-### Event Viewer/Logboeken
-Event opzoeken 
+### Task Scheduler/Taakplanner
+Er moeten drie taken worden aangemaakt waarbij enkel de eerste op een bepaalde event triggert.
+
+De eerste taak wordt uitgevoerd als administrator en wijzigt de execution policy naar remote signed, en start de tweede taak. Dit laat toe dat er scripts door de gebruiker worden uitgevoerd. 
+
+De tweede taak voert het script uit om de default printer aan te passen, en start de derde taak. 
+
+De derde taak wijzigt de execution policy terug naar remote signed.
+
+#### Taak 1:
+##### Tabblad 'General'
+Name: Printer (1) - Set-ExecutionPolicy and run script (Admin)
+Description: Set execution policy to remote signed and start task "Printer (2) - Set Default Printer (User)"
+Security options: change user en uitvoeren als admin (from this location aanpassen naar volledige directory) 
+Run whether user is logged on or not.
+
+##### Tabblad 'Triggers'
+New:
+Begin the task: At log on
+Delay task for: 5 minuten? (om de logon tijd te geven, nodig voor taak 2)
+Repeat task every: 10 minutes for a duration of 8 hours (of aanpassen naar iets dat wenselijk is)
+Stop the task if it runs longer than 1 day (?)
+
+##### Tabblad 'Actions' (in volgorde!)
+New:
+Action: Start a program
+Program/script: powershell.exe
+Add arguments: -Command "Set-ExecutionPolicy RemoteSigned -Scope LocalMachine -Force -WindowStyle Hidden"
+
+New:
+Action: Start a program
+Program/script: schtasks
+Add arguments: /run /tn "Printer (2) - Set Default Printer (User)"
+
+##### Tabblad 'Conditions'
+Uitvinken: start the task only if the computer is on AC power.
+
+##### Tabblad 'Settings'
+Aanvinken: Run task as soon as possible after a scheduled start is missed
+Aanvinken: if the task fails, restart every ... 
+
+#### Taak 2:
+##### Tabblad 'General'
+Name: Printer (2) - Set Default Printer (User)
+Description: Run powershell script to set default printer and start task "Printer (3) - Reset Execution Policy (Admin)"
+Run only when the user is logged on (uit te  voeren als de eindgebruiker)
+
+##### Tabblad 'Triggers'
+Geen
+
+##### Tabblad 'Actions' (in volgorde!)
+New:
+Action: Start a program
+Program/script: powershell.exe
+Add arguments: -File "C:\Users\602150536\OneDrive - Office 365 GPI\printer\VM-SetDefaultPrinter.ps1 -WindowStyle Hidden"
+
+New:
+Action: Start a program
+Program/script: schtasks
+Add arguments: /run /tn "Printer (3) - Reset Execution Policy (Admin)"
+
+##### Tabblad 'Conditions'
+Uitvinken: start the task only if the computer is on AC power.
+
+##### Tabblad 'Settings'
+Aanvinken: Run task as soon as possible after a scheduled start is missed
+Aanvinken: if the task fails, restart every ... 
+
+#### Taak 3:
+##### Tabblad 'General'
+Name: Printer (3) - Reset Execution Policy (Admin)
+Description: Set execution policy to restricted
+Security options: change user en uitvoeren als admin (from this location aanpassen naar volledige directory) 
+Run whether user is logged on or not.
+
+##### Tabblad 'Triggers'
+Geen
+
+##### Tabblad 'Actions' 
+New:
+Action: Start a program
+Program/script: powershell.exe
+Add arguments: -Command "Set-ExecutionPolicy Restricted-Scope LocalMachine -Force -WindowStyle Hidden"
+
+##### Tabblad 'Conditions'
+Uitvinken: start the task only if the computer is on AC power.
+
+##### Tabblad 'Settings'
+Aanvinken: Run task as soon as possible after a scheduled start is missed
+Aanvinken: if the task fails, restart every ... 
 
 
-
-
-
-### Task Scheduler/Taakplanner: Set Default Printer; OF via FileSystemWatcher
-
-TODO: enkel filesystemwatcher want events triggeren niet consistent
-
-Open Event Viewer als administrator
-Open Windows Logs - System
-Koppel het scherm los
-Optioneel: wis de system logs (hiervoor moet je de applicatie als administrator hebben opgestart)
-Koppel het scherm aan
-Registreer het gepaste Event ID (bv. Event-ID: 4107 Source: Display)
-
-#### Task Scheduler/Taakplanner
-##### General
-Naam: Printer - Set Default
-Beschrijving: Set default printer based on printer name in printerSysConfig.txt file on OneDrive.
-When running the task, use the following user account:
-- From this location: Entire Directory
-- Enter the object name to select: adm account
-
-##### Triggers
-
-TODO: enkel filesystemwatcher
-
-2 triggers? Logon & event
-
-New
-Begin the task: "On an event"
-Settings: Basic
-    Log: System
-    Source: Display
-    Event ID: opgezocht ID via Event Viewer (bv. 4107)
-
-Delay Task for: 1 mminute
-
-#### FileSystemWatcher
-Algemeen:
-(Voor volledige uitleg, zie uitlegger task scheduler op de lokale machine)
-Naam: Printer FileSystemWatcher
-Beschrijving: FileSystemWatcher to monitor OneDrive printer folder for changes to the printerConfig.txt and subsequently set the default printer.
-Beveiligingsopties; andere gebruiker, adm account
-Uitvoeren ongeacht of gebruiker wel of niet is aangemeld
-
-Triggers: Bij aanmelden
-Acties: Programma starten
-Programma/script: powershell.exe
-Parameters toevegen (optioneel): 
-    -File "C:\Users\[USERNAME]\OneDrive - Office 365 GPI\printer\filesystemwatcher.ps1"
-
-Voorwaarden:
-- De taak alleen starten als de computer op netstroom werkt
-- Stoppen als de computer op batterij gaat werken
-
-Instellingen:
-- Taak zo snel mogelijk uitvoeren, nadat een geplande activering is gemist.
-- Als de taak mislukt, opnieuw starten elke: 1 minuut
-- Maximaal aantal keren opnieuw starten: 3
-- Stoppen als deze taak langer duurt dan: 1 dag
-- De actieve taak geforceerd stoppen als deze niet aangevraagd stopt
 
 # Advies voor de eindgebruiker
 
-1. Het gebruik van de script valt niet onder de normale IT-werking
+Het gebruik van de script valt niet onder de normale IT-werking
 
 Dit betekent dat het gebruik van het script ten allen tijde kan worden stopgezet.
 
 Het is gemaakt om jouw dagdagelijkse werking iets te vereenvoudigen, maar biedt geen garantie op onderhoud ervan, of een blijvende werking. 
-
-2. Dit script kan voor problemen zorgen bij gebruik op verplaatsing
-
-Omdat het script de default printer instelt o.b.v. de gebruikelijke werkplek, kan het voorvallen dat bij gebruik op verplaatsing, bv. het CPG, de default printer bij aan- en afkoppelen van een extern scherm, terug op deze van de wijk plaatst.
-
 

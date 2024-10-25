@@ -20,7 +20,9 @@ $printerSyncFilePath = $printerSyncDirectory + $printerSyncFilename
 # Set the value to the MAC-Address of the display per printer.  
 $printerToMacAddressTable = @{
     "OneNote" = @("AC-DE-48-00-11-22", "A4-7B-9C-93-A9-FG")
-    "Fax" = @("00-14-22-01-23-45", "08-00-27-12-34-56")
+    "Fax" = @("00-14-22-01-23-45", "F4-6B-8C-92-B8-FD")
+    "PRINTERWI49" = @("00-14-22-01-23-45", "08-00-27-12-34-56")
+    "PRINTERWI51" = @("00-14-22-01-23-45", "08-00-27-12-34-56")
 }
 
 # Test directories and filepaths
@@ -49,9 +51,17 @@ foreach ($adapter in $networkAdapters) {
     $macAddress = $adapter.MacAddress.ToUpper()
 
     foreach ($printer in $printerToMacAddressTable.Keys) {
-        if($printerToMacAddressTable[$printer] -contains $macAddress) {
+        if ($printerToMacAddressTable[$printer] -contains $macAddress) {
             Set-Content -Path $printerSyncFilePath -Value $printer
-            break
+            Write-Verbose "Printer set to $printer"
+            $printerFound = $true  # Set flag to true if a printer is found
+            break  # Exit the inner loop if a match is found
         }
+    }
+    
+    # Check after the inner loop if no printer was found
+    if (-not $printerFound) {
+        Set-Content -Path $printerSyncFilePath -Value "Display Not Found"
+        Write-Verbose "Display MAC-address not found"
     }
 }

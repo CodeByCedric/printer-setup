@@ -28,9 +28,15 @@ if ($validPrinters -contains $defaultPrinter) {
     return
 }
 
-# Set default printer
+# Set default printer or run gpupdate to set printer based on policy
 try {
-    (New-Object -ComObject WScript.Network).SetDefaultPrinter($defaultPrinter)
+    if ($defaultPrinter -eq "Display Not Found") {
+        gpupdate /force
+
+    } else {
+        (New-Object -ComObject WScript.Network).SetDefaultPrinter($defaultPrinter)
+    }
+    
 }
 catch {
     Write-Verbose "Error setting default printer: $_"
